@@ -2,6 +2,8 @@
 
 A flexible, efficient DOM watcher library for modern browsers. This allows you to react to elements being added or removed from the DOM, and efficiently supports any number of different watchers.
 
+0.6KB minified and gzipped.
+
 ## Watching the DOM for changes
 To begin watching the DOM, add one or more handlers like this:
 
