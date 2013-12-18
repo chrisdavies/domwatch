@@ -11,10 +11,6 @@
         for (var i = 0; i < arr.length; ++i) fn(arr[i], i);
     }
 
-    function attr(n, name) {
-        return n.getAttribute && n.getAttribute(name);
-    }
-
     var rootHandler = {
         _wd: {
             added: function () { },
@@ -26,12 +22,13 @@
         if (handler._wd) return;
 
         var wd = {
-            parent: undefined,
-            child: rootHandler
-        },
+                parent: undefined,
+                child: rootHandler
+            },
+            rootWd = rootHandler._wd,
             handles = function () { return true; };
 
-        rootHandler.parent = handler;
+        rootWd.parent = handler;
         handler._wd = wd;
 
         if (handler.filter) handles = function (n) {
@@ -39,17 +36,13 @@
         };
 
         function addFn(fnName) {
-            if (handler[fnName]) {
-                wd[fnName] = function (n) {
-                    if (handles(n)) handler[fnName](n);
+            wd[fnName] = handler[fnName] ? function (n) {
+                if (handles(n)) handler[fnName](n);
 
-                    this.child._wd[fnName](n);
-                };
-            } else {
-                wd[fnName] = function (n) {
-                    this.child._wd[fnName](n);
-                };
-            }
+                wd.child._wd[fnName](n);
+            } : function (n) {
+                wd.child._wd[fnName](n);
+            };
         }
 
         addFn('added');
