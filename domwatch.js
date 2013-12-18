@@ -1,10 +1,12 @@
 (function (win) {
     function matches(node, selector) {
-        return (node.matches ||
+        var match = (node.matches ||
                 node.webkitMatchesSelector ||
                 node.msMatchesSelector ||
                 node.mozMatchesSelector ||
-                node.oMatchesSelector).call(node, selector);
+                node.oMatchesSelector);
+
+        return match && match.call(node, selector);
     }
 
     function each(arr, fn) {
