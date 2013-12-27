@@ -19,14 +19,14 @@ To begin watching the DOM, add one or more handlers like this:
         }
     }
     
-    watchdom(watcher);
+    domwatch(watcher);
     
 In this example, the watcher object is only watching for 'time.foo' elements. If no filter is supplied, then the added/removed functions will be called for every element that is added to the DOM.
 
 ## Stop watching the DOM
 To stop watching the DOM, simply remove your watcher like this:
 
-    unwatchdom(watcher);
+    domunwatch(watcher);
     
 ## Additional notes
 You can add and remove watchers at any time, and there is no limit to the number of watchers you add.

@@ -1,4 +1,6 @@
 (function (win) {
+    var handlers = [];
+
     function matches(node, selector) {
         var match = (node.matches ||
                 node.webkitMatchesSelector ||
@@ -9,83 +11,60 @@
         return match && match.call(node, selector);
     }
 
+    function all(node, handler, fnName) {
+        var selector = handler.filter;
+        matches(node, selector) && handler[fnName](node);
+        node.querySelectorAll && each(node.querySelectorAll(selector), handler[fnName]);
+    }
+
     function each(arr, fn) {
         for (var i = 0; i < arr.length; ++i) fn(arr[i], i);
     }
 
-    var rootHandler = {
-        _wd: {
-            added: function () { },
-            removed: function () { },
-        }
+    function domwatch(handler) {
+        if (handlers.indexOf(handler) >= 0) return;
+        var empty = function () { };
+        handler.added = handler.added || empty;
+        handler.removed = handler.removed || empty;
+        handlers.push(handler);
     }
 
-    function watchdom(handler) {
-        if (handler._wd) return;
-
-        var wd = {
-                parent: undefined,
-                child: rootHandler
-            },
-            rootWd = rootHandler._wd,
-            handles = function () { return true; };
-
-        rootWd.parent = handler;
-        handler._wd = wd;
-
-        if (handler.filter) handles = function (n) {
-            return matches(n, handler.filter);
-        };
-
-        function addFn(fnName) {
-            wd[fnName] = handler[fnName] ? function (n) {
-                if (handles(n)) handler[fnName](n);
-
-                wd.child._wd[fnName](n);
-            } : function (n) {
-                wd.child._wd[fnName](n);
-            };
-        }
-
-        addFn('added');
-        addFn('removed');
-        rootHandler = handler;
+    function domunwatch(handler) {
+        var i = handlers.indexOf(handler);
+        i >= 0 && handlers.splice(i, 1);
     }
 
-    function unwatchdom(handler) {
-        var wd = handler._wd;
-        if (rootHandler == handler) {
-            rootHandler = wd.child;
-            rootHandler._wd.parent = undefined;
-        } else {
-            wd.parent.child = wd.child;
-            wd.child.parent = wd.parent;
-        }
-
-        handler._wd = undefined;
+    function handleOne(node, fnName) {
+        each(handlers, function (handler) {
+            matches(node, handler.filter) && handler[fnName](node);
+        });
     }
 
-    function add(n) {
-        rootHandler._wd.added(n);
-    }
-
-    function remove(n) {
-        rootHandler._wd.removed(n);
+    function handleMany(nodes, fnName) {
+        each(nodes, function (node) {
+            each(handlers, function (handler) {
+                all(node, handler, fnName);
+            });
+        });
     }
     
-    var MO = win.MutationObserver || win.WebKitMutationObserver;
-    if (MO) {
-        new MO(function (mutations) {
-            each(mutations, function (mutation) {
-                each(mutation.addedNodes, add);
-                each(mutation.removedNodes, remove);
-            });
-        }).observe(document.body, { subtree: true, childList: true });
-    } else {
-        document.addEventListener('DOMNodeInserted', function (a) { add(a.target); }, false);
-        document.addEventListener('DOMNodeRemoved', function (r) { remove(r.target); }, false);
-    }
+    document.addEventListener("DOMContentLoaded", function () {
+        var MO = win.MutationObserver || win.WebKitMutationObserver;
+        if (MO) {
+            new MO(function (mutations) {
+                each(mutations, function (mutation) {
+                    handleMany(mutation.addedNodes, 'added');
+                    handleMany(mutation.removedNodes, 'removed');
+                });
+            }).observe(document, { subtree: true, childList: true });
+        } else {
+            document.addEventListener('DOMNodeInserted', function (a) { handleOne(a.target, 'added'); }, false);
+            document.addEventListener('DOMNodeRemoved', function (r) { handleOne(r.target, 'removed'); }, false);
+        }
 
-    win.watchdom = watchdom;
-    win.unwatchdom = unwatchdom;
+        handleMany([document.body], 'added');
+    });
+
+    win.domwatch = domwatch;
+    win.domunwatch = domunwatch;
 })(window);
